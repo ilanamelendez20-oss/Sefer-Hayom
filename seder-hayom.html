@@ -1,0 +1,838 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Seder HaYom · Daily Companion</title>
+<style>
+  :root{
+    --night:#16162E; --twilight:#4C3F73; --dawn:#D98A7A;
+    --brass:#C6A052; --brass-soft:#E4CD93;
+    --limestone:#ECE3D2; --parchment:#F6F0E4; --card:#FBF7EE;
+    --ink:#2A2336; --muted:#857F95; --line:#E2D7C2;
+    --ok:#6E8B6A; --fast:#A6543B;
+    --display:'Frank Ruhl Libre',Georgia,'Times New Roman',serif;
+    --ui:'Assistant',-apple-system,system-ui,'Helvetica Neue',sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%}
+  body{
+    font-family:var(--ui); color:var(--ink);
+    background:var(--parchment);
+    line-height:1.5; overflow-x:hidden;
+    padding-bottom:78px;
+  }
+  /* sky header tints with time of day, set via JS var --sky1/--sky2 */
+  .sky{
+    background:linear-gradient(160deg,var(--sky1,#4C3F73),var(--sky2,#D98A7A));
+    color:#fff; padding:22px 20px 26px; position:relative; overflow:hidden;
+    border-radius:0 0 26px 26px; box-shadow:0 8px 24px rgba(22,22,46,.18);
+  }
+  .sky::after{ /* sun/moon arc */
+    content:""; position:absolute; width:120px;height:120px;border-radius:50%;
+    right:-30px; top:var(--orb-top,10px);
+    background:var(--orb,radial-gradient(circle at 40% 40%,#FFF3D6,#F6C75B));
+    opacity:.85; filter:blur(.3px);
+    box-shadow:0 0 60px 12px var(--orb-glow,rgba(246,199,91,.5));
+  }
+  .eyebrow{font-size:12px;letter-spacing:.18em;text-transform:uppercase;opacity:.82;font-weight:600}
+  .hdate{font-family:var(--display);font-weight:700;font-size:34px;line-height:1.1;margin-top:6px;
+    direction:rtl; text-shadow:0 1px 8px rgba(0,0,0,.18)}
+  .hdate-en{font-family:var(--display);font-weight:500;font-size:19px;margin-top:2px;opacity:.96}
+  .gdate{font-size:13.5px;opacity:.9;margin-top:8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .pill{background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.28);
+    padding:2px 10px;border-radius:999px;font-size:12px;font-weight:600}
+
+  .now-strip{margin:-16px 16px 0;background:var(--card);border-radius:16px;
+    padding:13px 15px;box-shadow:0 6px 18px rgba(42,35,54,.10);position:relative;z-index:2;
+    border:1px solid var(--line)}
+  .now-strip .lab{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--brass);font-weight:700}
+  .now-row{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-top:3px}
+  .now-name{font-family:var(--display);font-size:19px;font-weight:700}
+  .now-count{font-size:13px;color:var(--muted);font-weight:600;white-space:nowrap}
+
+  main{padding:18px 16px 8px}
+  .tabpane{display:none} .tabpane.on{display:block;animation:fade .25s ease}
+  @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+  .sec-h{font-family:var(--display);font-size:15px;font-weight:700;letter-spacing:.02em;
+    color:var(--twilight);text-transform:uppercase;margin:22px 2px 10px;display:flex;align-items:center;gap:9px}
+  .sec-h:first-child{margin-top:2px}
+  .sec-h::before{content:"";width:18px;height:2px;background:var(--brass);border-radius:2px}
+
+  /* flow item */
+  .flow{position:relative;padding-left:30px}
+  .flow::before{content:"";position:absolute;left:8px;top:6px;bottom:6px;width:2px;
+    background:linear-gradient(var(--brass-soft),var(--line))}
+  .item{background:var(--card);border:1px solid var(--line);border-radius:14px;
+    padding:12px 14px;margin-bottom:10px;position:relative;transition:.18s}
+  .item::before{content:"";position:absolute;left:-22px;top:18px;width:11px;height:11px;border-radius:50%;
+    background:var(--parchment);border:2px solid var(--brass)}
+  .item.done{opacity:.62}
+  .item.now{border-color:var(--brass);box-shadow:0 0 0 3px rgba(198,160,82,.18)}
+  .item.now::before{background:var(--brass);box-shadow:0 0 0 4px rgba(198,160,82,.25)}
+  .item-top{display:flex;align-items:flex-start;gap:11px}
+  .chk{flex:none;width:24px;height:24px;border-radius:7px;border:2px solid var(--brass);
+    background:transparent;cursor:pointer;display:grid;place-items:center;margin-top:1px;transition:.15s}
+  .chk.on{background:var(--brass);border-color:var(--brass)}
+  .chk svg{width:14px;height:14px;stroke:#fff;stroke-width:3;fill:none;opacity:0;transition:.15s}
+  .chk.on svg{opacity:1}
+  .item h4{font-family:var(--display);font-size:17.5px;font-weight:700;line-height:1.2}
+  .item .he{direction:rtl;font-family:var(--display);font-weight:500;color:var(--twilight);font-size:16px;margin-top:1px}
+  .item .meta{font-size:12.5px;color:var(--muted);margin-top:4px}
+  .item .win{display:inline-block;font-size:11.5px;font-weight:700;color:var(--brass);
+    background:rgba(198,160,82,.12);padding:1px 8px;border-radius:999px;margin-top:6px}
+  .item .win.past{color:var(--muted);background:rgba(133,127,149,.12)}
+  .item-foot{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:6px}
+  .item-foot .win{margin-top:0}
+  .flowlink{font-size:12.5px;font-weight:700;color:var(--twilight);text-decoration:none;
+    border-bottom:1.5px solid var(--brass-soft);padding-bottom:1px}
+
+  /* zmanim */
+  .ztable{background:var(--card);border:1px solid var(--line);border-radius:16px;overflow:hidden}
+  .zrow{display:flex;justify-content:space-between;align-items:center;padding:12px 15px;border-bottom:1px solid var(--line)}
+  .zrow:last-child{border-bottom:none}
+  .zrow.hl{background:linear-gradient(90deg,rgba(198,160,82,.12),transparent)}
+  .zname{font-weight:600;font-size:15px}
+  .zname .he{direction:rtl;font-family:var(--display);color:var(--twilight);font-size:15px;margin-right:0}
+  .zsub{font-size:11.5px;color:var(--muted)}
+  .ztime{font-family:var(--display);font-size:17px;font-weight:700;font-variant-numeric:tabular-nums}
+
+  /* blessing cards */
+  .bcard{background:var(--card);border:1px solid var(--line);border-radius:14px;margin-bottom:11px;overflow:hidden}
+  .bhead{display:flex;justify-content:space-between;align-items:center;padding:13px 15px;cursor:pointer;gap:10px}
+  .bhead h4{font-family:var(--display);font-size:17px;font-weight:700}
+  .bhead .when{font-size:12px;color:var(--muted)}
+  .bhead .arr{color:var(--brass);transition:.2s;font-size:18px}
+  .bcard.open .arr{transform:rotate(90deg)}
+  .bbody{max-height:0;overflow:hidden;transition:max-height .3s ease}
+  .bcard.open .bbody{max-height:520px}
+  .bbody-in{padding:0 15px 15px}
+  .bhe{direction:rtl;font-family:var(--display);font-size:21px;font-weight:500;color:var(--ink);
+    line-height:1.7;padding:10px 0;border-top:1px solid var(--line)}
+  .btr{font-style:italic;color:var(--twilight);font-size:14px;margin-bottom:6px}
+  .ben{font-size:14px;color:var(--ink)}
+
+  /* upcoming */
+  .ucard{background:var(--card);border:1px solid var(--line);border-radius:14px;
+    padding:13px 15px;margin-bottom:10px;display:flex;gap:13px;align-items:center}
+  .ucard.soon{border-color:var(--brass)}
+  .udays{flex:none;width:54px;text-align:center}
+  .udays b{font-family:var(--display);font-size:24px;font-weight:900;color:var(--twilight);display:block;line-height:1}
+  .udays span{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+  .uinfo h4{font-family:var(--display);font-size:17px;font-weight:700}
+  .uinfo .ud{font-size:12.5px;color:var(--muted);margin-top:1px}
+  .uinfo .up{font-size:12.5px;margin-top:4px}
+  .uinfo .uflag{font-size:12px;font-weight:700;color:var(--fast);margin-top:4px;
+    background:rgba(166,84,59,.10);border-radius:8px;padding:3px 8px;display:inline-block}
+  .tag{font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;padding:2px 8px;border-radius:999px;vertical-align:middle;margin-left:6px}
+  .tag.fast{background:rgba(166,84,59,.14);color:var(--fast)}
+  .tag.chag{background:rgba(76,63,115,.14);color:var(--twilight)}
+  .tag.minor{background:rgba(198,160,82,.16);color:#9a7a2c}
+
+  /* my practice */
+  .addrow{display:flex;gap:8px;margin-bottom:12px}
+  .addrow input{flex:1;border:1px solid var(--line);background:var(--card);border-radius:11px;
+    padding:11px 13px;font-family:var(--ui);font-size:15px;color:var(--ink)}
+  .addrow input:focus{outline:none;border-color:var(--brass)}
+  .addrow button{flex:none;border:none;background:var(--twilight);color:#fff;border-radius:11px;
+    padding:0 16px;font-weight:700;font-size:15px;cursor:pointer;font-family:var(--ui)}
+  .pitem{display:flex;align-items:center;gap:11px;background:var(--card);border:1px solid var(--line);
+    border-radius:12px;padding:11px 13px;margin-bottom:8px}
+  .pitem.done span{text-decoration:line-through;color:var(--muted)}
+  .pitem span{flex:1;font-size:15px}
+  .pitem .del{border:none;background:none;color:var(--muted);font-size:19px;cursor:pointer;padding:0 4px}
+
+  .linkrow{display:flex;gap:10px;margin-top:10px}
+  .readlink{flex:1;text-align:center;text-decoration:none;font-family:var(--ui);font-weight:700;
+    font-size:14px;padding:11px 12px;border-radius:12px;background:var(--twilight);color:#fff;
+    border:1px solid var(--twilight)}
+  .readlink.alt{flex:0 0 auto;background:transparent;color:var(--twilight);padding:11px 16px}
+
+  .note{font-size:12px;color:var(--muted);line-height:1.55;background:rgba(133,127,149,.07);
+    border:1px solid var(--line);border-radius:12px;padding:11px 13px;margin-top:16px}
+  .note b{color:var(--ink)}
+
+  /* bottom nav */
+  nav{position:fixed;bottom:0;left:0;right:0;background:rgba(251,247,238,.94);
+    backdrop-filter:blur(12px);border-top:1px solid var(--line);
+    display:flex;justify-content:space-around;padding:8px 4px 10px;z-index:20}
+  nav button{border:none;background:none;display:flex;flex-direction:column;align-items:center;gap:3px;
+    color:var(--muted);font-family:var(--ui);font-size:10.5px;font-weight:600;cursor:pointer;flex:1;padding:2px}
+  nav button svg{width:23px;height:23px;stroke:currentColor;stroke-width:1.7;fill:none}
+  nav button.on{color:var(--brass)}
+  @media (max-width:360px){.hdate{font-size:29px}}
+</style>
+</head>
+<body>
+  <header class="sky" id="sky">
+    <div class="eyebrow">סדר היום · Order of the Day</div>
+    <div class="hdate" id="hdate">—</div>
+    <div class="hdate-en" id="hdateEn">—</div>
+    <div class="gdate">
+      <span id="gdate">—</span>
+      <span class="pill" id="phase">—</span>
+      <span class="pill">Edot HaMizrach</span>
+      <span class="pill">Diamond Bar, CA</span>
+    </div>
+  </header>
+
+  <div class="now-strip">
+    <div class="lab">Right now</div>
+    <div class="now-row">
+      <div class="now-name" id="nowName">—</div>
+      <div class="now-count" id="nowCount"></div>
+    </div>
+  </div>
+
+  <main>
+    <!-- TODAY / FLOW -->
+    <section class="tabpane on" id="pane-today">
+      <div id="flowMount"></div>
+
+      <div class="sec-h">My practice</div>
+      <div class="addrow">
+        <input id="addInput" placeholder="Add a daily intention…" maxlength="60">
+        <button id="addBtn">Add</button>
+      </div>
+      <div id="practiceMount"></div>
+
+      <div class="note">
+        Times are computed for Diamond Bar (91765) from the sun's position. Treat them as a
+        guide and confirm against your Chabad luach or <b>Chabad.org / MyZmanim</b> for practical
+        observance — communities differ on dawn, nightfall, and candle-lighting custom. This app
+        helps you keep the day's order; your rav remains the authority on halacha.
+      </div>
+    </section>
+
+    <!-- TIMES -->
+    <section class="tabpane" id="pane-times">
+      <div class="sec-h">Today's zmanim</div>
+      <div class="ztable" id="zmount"></div>
+      <div id="shabbatMount"></div>
+      <div class="note">
+        Sof Zman Shema is shown by both the Gra and the Magen Avraham (earlier) opinions — say
+        the morning Shema before the earlier time when you can. Candle-lighting is 18 minutes
+        before sunset. For Sephardic practice (Edot HaMizrach / following Rav Ovadia Yosef),
+        nightfall and the end of Shabbat may use a different shiur than shown — confirm tzeit
+        and Motzaei Shabbat with your luach.
+      </div>
+    </section>
+
+    <!-- READINGS -->
+    <section class="tabpane" id="pane-read">
+      <div class="sec-h">This week's Torah portion</div>
+      <div id="parshaMount"></div>
+      <div class="sec-h">Daily Tehillim</div>
+      <div id="tehillimMount"></div>
+      <div class="note">
+        Tehillim follows the standard monthly cycle by the day of the Hebrew month, shown for
+        today. On the 29th of a 29-day month, the 29th and 30th portions are said together.
+        The parsha is this week's Diaspora reading; when offline it can't refresh, so confirm
+        against your luach.
+      </div>
+    </section>
+
+    <!-- BLESSINGS -->
+    <section class="tabpane" id="pane-bless">
+      <div class="sec-h">Blessings</div>
+      <div id="blessMount"></div>
+      <div class="note">
+        Texts follow Sephardic / Edot HaMizrach practice and the feminine where the speaker
+        speaks (e.g. מוֹדָה אֲנִי). The Divine Name is set reverently as <b>ה׳</b> and
+        <b>אֱלֹקֵינוּ</b> so the text may be handled and closed without concern. Tap
+        <b>Find on Sefaria</b> for the fuller Sephardic wording.
+      </div>
+    </section>
+
+    <!-- COMING UP -->
+    <section class="tabpane" id="pane-cal">
+      <div class="sec-h">Coming up — fasts & festivals</div>
+      <div id="upMount"></div>
+      <div class="note">
+        Fast start/end times and yom-tov candle-lighting depend on your location and minhag.
+        Dawn-to-nightfall fasts begin at <b>alot hashachar</b>; the major fasts (Yom Kippur,
+        Tisha B'Av) begin at sunset the evening before. Confirm details with your luach.
+      </div>
+    </section>
+  </main>
+
+  <nav id="nav">
+    <button class="on" data-tab="today">
+      <svg viewBox="0 0 24 24"><path d="M3 12 12 4l9 8"/><path d="M5 10v9h14v-9"/></svg>Today</button>
+    <button data-tab="times">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7v5l3 2"/></svg>Times</button>
+    <button data-tab="read">
+      <svg viewBox="0 0 24 24"><path d="M12 6c-2-1.5-5-1.5-7 0v12c2-1.5 5-1.5 7 0M12 6c2-1.5 5-1.5 7 0v12c-2-1.5-5-1.5-7 0M12 6v12"/></svg>Readings</button>
+    <button data-tab="bless">
+      <svg viewBox="0 0 24 24"><path d="M6 3h9l4 4v14H6z"/><path d="M9 8h6M9 12h6M9 16h4"/></svg>Blessings</button>
+    <button data-tab="cal">
+      <svg viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="16" rx="2"/><path d="M4 9h16M8 3v4M16 3v4"/></svg>Coming up</button>
+  </nav>
+
+<script>
+/* ===================== Calendar + Solar core (verified) ===================== */
+const RAD=Math.PI/180;
+function julianDay(date){
+  let y=date.getUTCFullYear(),m=date.getUTCMonth()+1;
+  const d=date.getUTCDate()+(date.getUTCHours()+date.getUTCMinutes()/60+date.getUTCSeconds()/3600)/24;
+  if(m<=2){y-=1;m+=12;}
+  const A=Math.floor(y/100),B=2-A+Math.floor(A/4);
+  return Math.floor(365.25*(y+4716))+Math.floor(30.6001*(m+1))+d+B-1524.5;
+}
+function sunEvent(date,lat,lng,angle,side){
+  const jd=julianDay(new Date(Date.UTC(date.getFullYear(),date.getMonth(),date.getDate())));
+  const T=(jd-2451545.0)/36525.0;
+  const L0=(280.46646+T*(36000.76983+0.0003032*T))%360;
+  const M=357.52911+T*(35999.05029-0.0001537*T);
+  const e=0.016708634-T*(0.000042037+0.0000001267*T);
+  const C=Math.sin(M*RAD)*(1.914602-T*(0.004817+0.000014*T))+Math.sin(2*M*RAD)*(0.019993-0.000101*T)+Math.sin(3*M*RAD)*0.000289;
+  const trueLong=L0+C, omega=125.04-1934.136*T;
+  const lambda=trueLong-0.00569-0.00478*Math.sin(omega*RAD);
+  const eps0=23+(26+((21.448-T*(46.815+T*(0.00059-T*0.001813))))/60)/60;
+  const eps=eps0+0.00256*Math.cos(omega*RAD);
+  const decl=Math.asin(Math.sin(eps*RAD)*Math.sin(lambda*RAD))/RAD;
+  const yy=Math.tan(eps/2*RAD)**2;
+  const Eot=4*(yy*Math.sin(2*L0*RAD)-2*e*Math.sin(M*RAD)+4*e*yy*Math.sin(M*RAD)*Math.cos(2*L0*RAD)-0.5*yy*yy*Math.sin(4*L0*RAD)-1.25*e*e*Math.sin(2*M*RAD))/RAD;
+  const solarNoon=720-4*lng-Eot;
+  const cosH=(Math.sin(angle*RAD)-Math.sin(lat*RAD)*Math.sin(decl*RAD))/(Math.cos(lat*RAD)*Math.cos(decl*RAD));
+  if(cosH>1||cosH<-1) return null;
+  const H=Math.acos(cosH)/RAD;
+  return side==='rise'?solarNoon-4*H:solarNoon+4*H; // UTC minutes
+}
+function isHebrewLeap(y){return(((y*7)+1)%19)<7;}
+function hebrewElapsedDays(year){const m=Math.floor((235*year-234)/19);const p=12084+13753*m;let day=m*29+Math.floor(p/25920);if(((3*(day+1))%7)<3)day+=1;return day;}
+function hebrewDaysInYear(year){return hebrewElapsedDays(year+1)-hebrewElapsedDays(year);}
+function longCheshvan(year){return hebrewDaysInYear(year)%10===5;}
+function shortKislev(year){return hebrewDaysInYear(year)%10===3;}
+function hebrewMonthsInYear(year){return isHebrewLeap(year)?13:12;}
+function hebrewDaysInMonth(month,year){
+  if([2,4,6,10,13].includes(month))return 29;
+  if(month===8&&!longCheshvan(year))return 29;
+  if(month===9&&shortKislev(year))return 29;
+  if(month===12&&!isHebrewLeap(year))return 29;
+  return 30;
+}
+const HEBREW_EPOCH=-1373428;
+function hebrewToAbsolute(year,month,day){
+  let d=day;
+  if(month<7){for(let m=7;m<=hebrewMonthsInYear(year);m++)d+=hebrewDaysInMonth(m,year);for(let m=1;m<month;m++)d+=hebrewDaysInMonth(m,year);}
+  else{for(let m=7;m<month;m++)d+=hebrewDaysInMonth(m,year);}
+  return d+hebrewElapsedDays(year)+HEBREW_EPOCH;
+}
+function gregorianToAbsolute(year,month,day){
+  let a=365*(year-1)+Math.floor((year-1)/4)-Math.floor((year-1)/100)+Math.floor((year-1)/400);
+  const leap=((year%4===0&&year%100!==0)||year%400===0);
+  const md=[31,leap?29:28,31,30,31,30,31,31,30,31,30,31];
+  for(let m=0;m<month-1;m++)a+=md[m];
+  return a+day;
+}
+function gLeap(y){return((y%4===0&&y%100!==0)||y%400===0);}
+function gMonthLen(y,m){return[31,gLeap(y)?29:28,31,30,31,30,31,31,30,31,30,31][m-1];}
+function absoluteToGregorian(abs){
+  let year=Math.floor(abs/366);
+  while(gregorianToAbsolute(year+1,1,1)<=abs)year++;
+  let month=1;
+  while(abs>gregorianToAbsolute(year,month,gMonthLen(year,month)))month++;
+  return{year,month,day:abs-gregorianToAbsolute(year,month,1)+1};
+}
+function absoluteToHebrew(abs){
+  let year=Math.floor((abs+1373429)/366);
+  while(hebrewToAbsolute(year+1,7,1)<=abs)year++;
+  let month=(abs<hebrewToAbsolute(year,1,1))?7:1;
+  while(abs>hebrewToAbsolute(year,month,hebrewDaysInMonth(month,year)))month++;
+  return{year,month,day:abs-hebrewToAbsolute(year,month,1)+1};
+}
+function dow(abs){return((abs%7)+7)%7;}
+function hebYear(y){
+  let n=y%1000; // 5786 -> 786
+  const H100=['','ק','ר','ש','ת','תק','תר','תש','תת','תתק'];
+  const H10=['','י','כ','ל','מ','נ','ס','ע','פ','צ'];
+  const H1=['','א','ב','ג','ד','ה','ו','ז','ח','ט'];
+  let s=H100[Math.floor(n/100)]; n%=100;
+  if(n===15)s+='טו'; else if(n===16)s+='טז';
+  else{s+=H10[Math.floor(n/10)]+H1[n%10];}
+  if(s.length>1)s=s.slice(0,-1)+'״'+s.slice(-1); else s+='׳';
+  return s;
+}
+
+const HMON={1:'Nisan',2:'Iyar',3:'Sivan',4:'Tammuz',5:'Av',6:'Elul',7:'Tishrei',8:'Cheshvan',9:'Kislev',10:'Tevet',11:'Shevat',12:'Adar',13:'Adar II'};
+const HMON_HE={1:'נִיסָן',2:'אִיָּר',3:'סִיוָן',4:'תַּמּוּז',5:'אָב',6:'אֱלוּל',7:'תִּשְׁרֵי',8:'חֶשְׁוָן',9:'כִּסְלֵו',10:'טֵבֵת',11:'שְׁבָט',12:'אֲדָר',13:'אֲדָר ב׳'};
+const HEB_NUM=['','א','ב','ג','ד','ה','ו','ז','ח','ט','י','יא','יב','יג','יד','טו','טז','יז','יח','יט','כ','כא','כב','כג','כד','כה','כו','כז','כח','כט','ל'];
+const DOWE=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Shabbat'];
+
+/* ===================== Holiday engine (verified) ===================== */
+function holidaysForYear(hy){
+  const adar=isHebrewLeap(hy)?13:12;
+  const H=(m,d)=>hebrewToAbsolute(hy,m,d);
+  const o=[];
+  const add=(name,he,abs,type,prep,flag)=>o.push({name,he,abs,type,prep,flag:flag||null});
+  // chag: flag if first day is Shabbat
+  const shab=(abs)=>dow(abs)===6?'Falls on Shabbat':null;
+
+  add('Rosh Hashana','רֹאשׁ הַשָּׁנָה',H(7,1),'chag','Two days; candle-lighting the evening before.',shab(H(7,1)));
+  let tg=H(7,3); const tgN=dow(tg)===6; if(tgN)tg+=1; add('Tzom Gedaliah','צוֹם גְּדַלְיָה',tg,'fast','Dawn-to-nightfall fast.',tgN?'Postponed to Sunday (3 Tishrei was Shabbat)':null);
+  add('Yom Kippur','יוֹם כִּפּוּר',H(7,10),'fast','25-hour fast; begins before sunset the evening before.',shab(H(7,10)));
+  add('Sukkot','סֻכּוֹת',H(7,15),'chag','Build/eat in the sukkah; candle-lighting before.',shab(H(7,15)));
+  add('Shmini Atzeret','שְׁמִינִי עֲצֶרֶת',H(7,22),'chag','Yizkor; candle-lighting before.',shab(H(7,22)));
+  add('Simchat Torah','שִׂמְחַת תּוֹרָה',H(7,23),'chag','Second day in the Diaspora.',shab(H(7,23)));
+  add('Chanukah','חֲנֻכָּה',H(9,25),'minor','Light the first candle at nightfall.',null);
+  add("Asara B'Tevet",'עֲשָׂרָה בְּטֵבֵת',H(10,10),'fast','Dawn-to-nightfall fast.',null);
+  add('Tu BiShvat','ט״ו בִּשְׁבָט',H(11,15),'minor','New year of the trees.',null);
+  let te=H(adar,13); const teN=dow(te)===6; if(teN)te-=2; add('Taanit Esther','תַּעֲנִית אֶסְתֵּר',te,'fast','Dawn-to-nightfall fast before Purim.',teN?'Moved earlier to Thursday (13 Adar was Shabbat)':null);
+  add('Purim','פּוּרִים',H(adar,14),'minor','Megillah, mishloach manot, matanot la-evyonim, seudah.',null);
+  add('Pesach','פֶּסַח',H(1,15),'chag','Search/burn chametz before; Seder the first night(s).',shab(H(1,15)));
+  add('Shvii shel Pesach','שְׁבִיעִי שֶׁל פֶּסַח',H(1,21),'chag','Seventh day; eighth in the Diaspora.',shab(H(1,21)));
+  add('Lag BaOmer','ל״ג בָּעוֹמֶר',H(2,18),'minor','33rd day of the Omer.',null);
+  add('Shavuot','שָׁבוּעוֹת',H(3,6),'chag','Two days in the Diaspora; all-night learning.',shab(H(3,6)));
+  let tt=H(4,17); const ttN=dow(tt)===6; if(ttN)tt+=1; add("Shiva Asar B'Tammuz",'שִׁבְעָה עָשָׂר בְּתַמּוּז',tt,'fast','Opens the Three Weeks.',ttN?'Postponed to Sunday (17 Tammuz was Shabbat)':null);
+  let ta=H(5,9); const taN=dow(ta)===6; if(taN)ta+=1; add("Tisha B'Av",'תִּשְׁעָה בְּאָב',ta,'fast','25-hour fast; begins before sunset the evening before.',taN?'Postponed to Sunday (9 Av was Shabbat)':null);
+  return o.sort((a,b)=>a.abs-b.abs);
+}
+
+/* ===================== Blessings (reverent forms; feminine speaker) ===================== */
+const BRACHA_PREFIX='בָּרוּךְ אַתָּה ה׳ אֱלֹקֵינוּ מֶלֶךְ הָעוֹלָם,';
+const SIDB='Siddur_Edot_HaMizrach';
+const BLESSINGS=[
+  {name:'Modeh Ani',when:'First thing on waking',ref:SIDB+',_Preparatory_Prayers,_Modeh_Ani',
+   he:'מוֹדָה אֲנִי לְפָנֶיךָ מֶלֶךְ חַי וְקַיָּם, שֶׁהֶחֱזַרְתָּ בִּי נִשְׁמָתִי בְּחֶמְלָה, רַבָּה אֱמוּנָתֶךָ.',
+   tr:'Modah ani lefanecha… shehechezarta bi nishmati b\'chemlah, rabbah emunatecha.',
+   en:'I give thanks before You, living and eternal King, for returning my soul within me with compassion — great is Your faithfulness.'},
+  {name:'Netilat Yadayim',when:'After washing hands in the morning',ref:SIDB+',_Preparatory_Prayers,_Morning_Blessings',
+   he:BRACHA_PREFIX+' אֲשֶׁר קִדְּשָׁנוּ בְּמִצְוֺתָיו וְצִוָּנוּ עַל נְטִילַת יָדָיִם.',
+   tr:'…asher kid\'shanu b\'mitzvotav v\'tzivanu al netilat yadayim.',
+   en:'…who has sanctified us with His commandments and commanded us concerning washing the hands.'},
+  {name:'Asher Yatzar',when:'After using the restroom',ref:SIDB+',_Preparatory_Prayers,_Morning_Blessings',
+   he:BRACHA_PREFIX+' אֲשֶׁר יָצַר אֶת הָאָדָם בְּחָכְמָה, וּבָרָא בוֹ נְקָבִים נְקָבִים, חֲלוּלִים חֲלוּלִים… בָּרוּךְ אַתָּה ה׳, רוֹפֵא כָל בָּשָׂר וּמַפְלִיא לַעֲשׂוֹת.',
+   tr:'…asher yatzar et ha\'adam b\'chochmah… rofei chol basar umafli la\'asot.',
+   en:'…who formed the human being with wisdom… Blessed are You, who heals all flesh and acts wondrously.'},
+  {name:'Shema (first line)',when:'Morning & night, and at bedtime',ref:'Deuteronomy.6.4-9',
+   he:'שְׁמַע יִשְׂרָאֵל, ה׳ אֱלֹקֵינוּ, ה׳ אֶחָד.',
+   tr:'Shema Yisrael, Ado-nai Elo-heinu, Ado-nai echad.',
+   en:'Hear, O Israel: the Lord is our God, the Lord is One.'},
+  {name:'HaMotzi (bread)',when:'Before bread',ref:SIDB+',_Blessings_on_Enjoyments',
+   he:BRACHA_PREFIX+' הַמּוֹצִיא לֶחֶם מִן הָאָרֶץ.',
+   tr:'…hamotzi lechem min ha\'aretz.',
+   en:'…who brings forth bread from the earth.'},
+  {name:'Mezonot (grain foods)',when:'Before cake, pasta, cereal',ref:SIDB+',_Blessings_on_Enjoyments',
+   he:BRACHA_PREFIX+' בּוֹרֵא מִינֵי מְזוֹנוֹת.',
+   tr:'…borei minei mezonot.',
+   en:'…who creates varieties of nourishment.'},
+  {name:'HaGafen (wine)',when:'Before wine or grape juice',ref:SIDB+',_Blessings_on_Enjoyments',
+   he:BRACHA_PREFIX+' בּוֹרֵא פְּרִי הַגָּפֶן.',
+   tr:'…borei pri hagafen.',
+   en:'…who creates the fruit of the vine.'},
+  {name:'HaEtz (tree fruit)',when:'Before fruit from a tree',ref:SIDB+',_Blessings_on_Enjoyments',
+   he:BRACHA_PREFIX+' בּוֹרֵא פְּרִי הָעֵץ.',
+   tr:'…borei pri ha\'etz.',
+   en:'…who creates the fruit of the tree.'},
+  {name:'HaAdama (from the ground)',when:'Before vegetables, ground fruit',ref:SIDB+',_Blessings_on_Enjoyments',
+   he:BRACHA_PREFIX+' בּוֹרֵא פְּרִי הָאֲדָמָה.',
+   tr:'…borei pri ha\'adamah.',
+   en:'…who creates the fruit of the ground.'},
+  {name:'Shehakol (everything else)',when:'Drinks, meat, eggs, candy',ref:SIDB+',_Blessings_on_Enjoyments',
+   he:BRACHA_PREFIX+' שֶׁהַכֹּל נִהְיֶה בִּדְבָרוֹ.',
+   tr:'…shehakol nih\'yeh bidvaro.',
+   en:'…through whose word everything comes to be.'},
+  {name:'Candle Lighting (Shabbat)',when:'Friday, before sunset',ref:SIDB+',_Shabbat_Candle_Lighting',
+   he:BRACHA_PREFIX+' אֲשֶׁר קִדְּשָׁנוּ בְּמִצְוֺתָיו וְצִוָּנוּ לְהַדְלִיק נֵר שֶׁל שַׁבָּת.',
+   tr:'…v\'tzivanu l\'hadlik ner shel Shabbat.',
+   en:'…and commanded us to kindle the light of Shabbat.'},
+  {name:'Shehecheyanu',when:'New things, festivals, first fruits',
+   he:BRACHA_PREFIX+' שֶׁהֶחֱיָנוּ וְקִיְּמָנוּ וְהִגִּיעָנוּ לַזְּמַן הַזֶּה.',
+   tr:'…shehecheyanu v\'kiy\'manu v\'higi\'anu lazman hazeh.',
+   en:'…who has kept us alive, sustained us, and brought us to this season.'},
+];
+
+/* ===================== Daily Tehillim (monthly cycle, 30-day) ===================== */
+const TEHILLIM=[null,'1–9','10–17','18–22','23–28','29–34','35–38','39–43','44–48','49–54',
+  '55–59','60–65','66–68','69–71','72–76','77–78','79–82','83–87','88–89','90–96',
+  '97–103','104–105','106–107','108–112','113–118','119:1–96','119:97–176','120–134',
+  '135–139','140–144','145–150'];
+const ALIYAH=['First','Second','Third','Fourth','Fifth','Sixth','Seventh'];
+
+/* Parsha (and combined-pair) -> opening reference, for a reliable Sefaria link.
+   Keyed by a normalized name (letters only, lowercase) to absorb spelling variants. */
+const PARSHA_START={
+  bereshit:'Genesis.1.1', noach:'Genesis.6.9', lechlecha:'Genesis.12.1', vayera:'Genesis.18.1',
+  chayeisara:'Genesis.23.1', toldot:'Genesis.25.19', vayetzei:'Genesis.28.10', vayishlach:'Genesis.32.4',
+  vayeshev:'Genesis.37.1', miketz:'Genesis.41.1', vayigash:'Genesis.44.18', vayechi:'Genesis.47.28',
+  shemot:'Exodus.1.1', vaera:'Exodus.6.2', bo:'Exodus.10.1', beshalach:'Exodus.13.17', yitro:'Exodus.18.1',
+  mishpatim:'Exodus.21.1', terumah:'Exodus.25.1', tetzaveh:'Exodus.27.20', kitisa:'Exodus.30.11',
+  vayakhel:'Exodus.35.1', pekudei:'Exodus.38.21', vayakhelpekudei:'Exodus.35.1',
+  vayikra:'Leviticus.1.1', tzav:'Leviticus.6.1', shmini:'Leviticus.9.1', tazria:'Leviticus.12.1',
+  metzora:'Leviticus.14.1', tazriametzora:'Leviticus.12.1', achreimot:'Leviticus.16.1', kedoshim:'Leviticus.19.1',
+  achreimotkedoshim:'Leviticus.16.1', emor:'Leviticus.21.1', behar:'Leviticus.25.1', bechukotai:'Leviticus.26.3',
+  beharbechukotai:'Leviticus.25.1', bamidbar:'Numbers.1.1', nasso:'Numbers.4.21', behaalotcha:'Numbers.8.1',
+  shlach:'Numbers.13.1', korach:'Numbers.16.1', chukat:'Numbers.19.1', balak:'Numbers.22.2',
+  chukatbalak:'Numbers.19.1', pinchas:'Numbers.25.10', matot:'Numbers.30.2', masei:'Numbers.33.1',
+  matotmasei:'Numbers.30.2', devarim:'Deuteronomy.1.1', vaetchanan:'Deuteronomy.3.23', eikev:'Deuteronomy.7.12',
+  reeh:'Deuteronomy.11.26', shoftim:'Deuteronomy.16.18', kiteitzei:'Deuteronomy.21.10', kitavo:'Deuteronomy.26.1',
+  nitzavim:'Deuteronomy.29.9', vayeilech:'Deuteronomy.31.1', nitzavimvayeilech:'Deuteronomy.29.9',
+  haazinu:'Deuteronomy.32.1', vezothaberakhah:'Deuteronomy.33.1', vezothaberachah:'Deuteronomy.33.1'
+};
+const normParsha=s=>(s||'').replace(/Parashat\s*/i,'').toLowerCase().replace(/[^a-z]/g,'');
+
+/* ===================== Storage (artifact + portable) ===================== */
+const store={
+  async get(k){try{if(window.storage){const r=await window.storage.get(k);return r?r.value:null;}return localStorage.getItem(k);}catch(e){try{return localStorage.getItem(k);}catch(_){return null;}}},
+  async set(k,v){try{if(window.storage){await window.storage.set(k,v);return;}localStorage.setItem(k,v);}catch(e){try{localStorage.setItem(k,v);}catch(_){}}}
+};
+
+/* ===================== App ===================== */
+const LAT=34.0286, LNG=-117.8103;
+const fmtTime=(utcMin)=>{
+  if(utcMin==null)return'—';
+  const off=-new Date().getTimezoneOffset();
+  let loc=((utcMin+off)%1440+1440)%1440;
+  const h=Math.floor(loc/60),m=Math.round(loc%60);
+  const hh=((h+11)%12)+1, ap=h<12?'AM':'PM';
+  return`${hh}:${String(m).padStart(2,'0')} ${ap}`;
+};
+const toLocalMin=(utcMin)=>{const off=-new Date().getTimezoneOffset();return((utcMin+off)%1440+1440)%1440;};
+
+let Z={}, todayAbs, flowState={}, practice=[], dayKey='';
+
+function computeZmanim(d){
+  const netz=sunEvent(d,LAT,LNG,-0.833,'rise');
+  const shkia=sunEvent(d,LAT,LNG,-0.833,'set');
+  const noon=(netz+shkia)/2;
+  const shaah=(shkia-netz)/12;
+  // Magen Avraham day: alot(-16.1) to tzeit(-16.1)
+  const alot=sunEvent(d,LAT,LNG,-16.1,'rise');
+  const tzeitMA=sunEvent(d,LAT,LNG,-16.1,'set');
+  const shaahMA=(tzeitMA-alot)/12;
+  return{
+    alot, misheyakir:sunEvent(d,LAT,LNG,-11.5,'rise'), netz,
+    shemaGRA:netz+3*shaah, shemaMA:alot+3*shaahMA,
+    tefilaGRA:netz+4*shaah, chatzot:noon,
+    minchaG:noon+0.5*shaah, minchaK:netz+9.5*shaah,
+    plag:netz+10.75*shaah, shkia,
+    candle:shkia-18, tzeit:sunEvent(d,LAT,LNG,-8.5,'set')
+  };
+}
+
+function setSky(localMin){
+  const sky=document.getElementById('sky');
+  let s1,s2,orb,glow,top,phase;
+  const r=localMin/1440;
+  if(localMin<toLocalMin(Z.alot)){phase='Night';s1='#16162E';s2='#3A2F57';orb='radial-gradient(circle at 40% 40%,#E8ECFF,#AEB6E0)';glow='rgba(174,182,224,.4)';top='14px';}
+  else if(localMin<toLocalMin(Z.netz)){phase='Dawn';s1='#6E5A86';s2='#E0998A';orb='radial-gradient(circle at 40% 40%,#FFE9C9,#F4B26A)';glow='rgba(244,178,106,.5)';top='40px';}
+  else if(localMin<toLocalMin(Z.chatzot)){phase='Morning';s1='#4C7CA8';s2='#9CC0D8';orb='radial-gradient(circle at 40% 40%,#FFF7DD,#F6C75B)';glow='rgba(246,199,91,.55)';top='8px';}
+  else if(localMin<toLocalMin(Z.minchaG)){phase='Midday';s1='#5B8CB0';s2='#A9CBDD';orb='radial-gradient(circle at 40% 40%,#FFFBE9,#F8D26B)';glow='rgba(248,210,107,.55)';top='4px';}
+  else if(localMin<toLocalMin(Z.shkia)){phase='Afternoon';s1='#6E6FA0';s2='#E0A883';orb='radial-gradient(circle at 40% 40%,#FFEAC6,#F2A95B)';glow='rgba(242,169,91,.5)';top='34px';}
+  else if(localMin<toLocalMin(Z.tzeit)){phase='Dusk';s1='#3E3566';s2='#B5715E';orb='radial-gradient(circle at 40% 40%,#F6D2B0,#C9785A)';glow='rgba(201,120,90,.45)';top='58px';}
+  else{phase='Night';s1='#16162E';s2='#3A2F57';orb='radial-gradient(circle at 40% 40%,#E8ECFF,#AEB6E0)';glow='rgba(174,182,224,.4)';top='14px';}
+  sky.style.setProperty('--sky1',s1);sky.style.setProperty('--sky2',s2);
+  sky.style.setProperty('--orb',orb);sky.style.setProperty('--orb-glow',glow);
+  sky.style.setProperty('--orb-top',top);
+  document.getElementById('phase').textContent=phase;
+}
+
+const SID='Siddur_Edot_HaMizrach';
+function flowItems(){
+  return[
+    {id:'modeh',sec:'On waking',title:'Modeh Ani',he:'מוֹדָה אֲנִי',ref:SID+',_Preparatory_Prayers,_Modeh_Ani',meta:'Give thanks the moment you wake, before rising.'},
+    {id:'netilat',sec:'On waking',title:'Netilat Yadayim',he:'נְטִילַת יָדָיִם',ref:SID+',_Preparatory_Prayers,_Morning_Blessings',meta:'Wash hands; then the morning blessings.'},
+    {id:'birchot',sec:'On waking',title:'Morning Blessings',he:'בִּרְכוֹת הַשַּׁחַר',ref:SID+',_Preparatory_Prayers,_Morning_Blessings',meta:'Birchot HaShachar & Birchot HaTorah.'},
+    {id:'shema_am',sec:'Morning',title:'Morning Shema',he:'קְרִיאַת שְׁמַע',ref:SID+',_Weekday_Shacharit,_The_Shema',win:[Z.misheyakir,Z.shemaGRA],meta:'Say Shema before Sof Zman Shema.'},
+    {id:'shacharit',sec:'Morning',title:'Shacharit',he:'שַׁחֲרִית',ref:SID+',_Weekday_Shacharit,_Amida',win:[Z.netz,Z.tefilaGRA],meta:'Morning prayer; ideally after sunrise, Amidah before midday.'},
+    {id:'mincha',sec:'Afternoon',title:'Mincha',he:'מִנְחָה',ref:SID+',_Weekday_Mincha,_Amida',win:[Z.minchaG,Z.shkia],meta:'From Mincha Gedola until sunset.'},
+    {id:'maariv',sec:'Evening',title:'Arvit',he:'עַרְבִית',ref:SID+',_Weekday_Arvit,_Amidah',win:[Z.tzeit,Z.tzeit+240],meta:'Evening prayer, from nightfall.'},
+    {id:'shema_pm',sec:'Night',title:'Bedtime Shema',he:'קְרִיאַת שְׁמַע עַל הַמִּטָּה',ref:SID+',_Bedtime_Shema',meta:'Say Shema and the night blessings before sleep.'}
+  ];
+}
+
+function currentFlowId(items,localMin){
+  // first item with an active window, else first unchecked upcoming
+  for(const it of items){
+    if(it.win){const a=toLocalMin(it.win[0]),b=toLocalMin(it.win[1]);if(localMin>=a&&localMin<=b&&!flowState[it.id])return it.id;}
+  }
+  for(const it of items){if(!flowState[it.id])return it.id;}
+  return null;
+}
+
+function renderFlow(){
+  const items=flowItems();
+  const now=new Date();const localMin=now.getHours()*60+now.getMinutes();
+  const curId=currentFlowId(items,localMin);
+  const secs=['On waking','Morning','Afternoon','Evening','Night'];
+  let html='';
+  for(const s of secs){
+    const group=items.filter(i=>i.sec===s);if(!group.length)continue;
+    html+=`<div class="sec-h">${s}</div><div class="flow">`;
+    for(const it of group){
+      const done=!!flowState[it.id], isNow=it.id===curId;
+      let win='';
+      if(it.win){
+        const a=toLocalMin(it.win[0]),b=toLocalMin(it.win[1]);
+        const past=localMin>b;
+        win=`<span class="win ${past?'past':''}">${fmtTime(it.win[0])} – ${fmtTime(it.win[1])}</span>`;
+      }
+      const link=it.ref?`<a class="flowlink" href="https://www.sefaria.org/${it.ref}" target="_blank" rel="noopener">Open text ›</a>`:'';
+      html+=`<div class="item ${done?'done':''} ${isNow?'now':''}">
+        <div class="item-top">
+          <button class="chk ${done?'on':''}" data-flow="${it.id}">
+            <svg viewBox="0 0 24 24"><path d="M4 12l5 5L20 6"/></svg></button>
+          <div style="flex:1">
+            <h4>${it.title} <span class="he">${it.he}</span></h4>
+            <div class="meta">${it.meta}</div>
+            <div class="item-foot">${win}${link}</div>
+          </div>
+        </div></div>`;
+    }
+    html+=`</div>`;
+  }
+  document.getElementById('flowMount').innerHTML=html;
+  document.querySelectorAll('[data-flow]').forEach(b=>b.onclick=()=>{
+    const id=b.dataset.flow;flowState[id]=!flowState[id];
+    store.set('flow:'+dayKey,JSON.stringify(flowState));renderFlow();
+  });
+}
+
+function renderZmanim(){
+  const now=new Date();const localMin=now.getHours()*60+now.getMinutes();
+  const rows=[
+    ['Alot HaShachar','עֲלוֹת הַשַּׁחַר',Z.alot,'Dawn'],
+    ['Misheyakir','מִשֶּׁיַּכִּיר',Z.misheyakir,'Earliest tallit & tefillin'],
+    ['Netz HaChamah','נֵץ הַחַמָּה',Z.netz,'Sunrise'],
+    ['Sof Zman Shema (MA)','סוֹף זְמַן שְׁמַע',Z.shemaMA,'Magen Avraham — earlier'],
+    ['Sof Zman Shema (Gra)','סוֹף זְמַן שְׁמַע',Z.shemaGRA,'Vilna Gaon'],
+    ['Sof Zman Tefillah','סוֹף זְמַן תְּפִלָּה',Z.tefilaGRA,'Latest morning Amidah (Gra)'],
+    ['Chatzot','חֲצוֹת',Z.chatzot,'Midday'],
+    ['Mincha Gedola','מִנְחָה גְּדוֹלָה',Z.minchaG,'Earliest Mincha'],
+    ['Plag HaMincha','פְּלַג הַמִּנְחָה',Z.plag,'Earliest Shabbat candles / Maariv'],
+    ['Shkiah','שְׁקִיעָה',Z.shkia,'Sunset'],
+    ['Tzeit HaKochavim','צֵאת הַכּוֹכָבִים',Z.tzeit,'Nightfall (3 stars)']
+  ];
+  // find nearest upcoming for highlight
+  let hlIdx=-1,best=1e9;
+  rows.forEach((r,i)=>{const lm=toLocalMin(r[2]);const diff=lm-localMin;if(diff>=0&&diff<best){best=diff;hlIdx=i;}});
+  let html='';
+  rows.forEach((r,i)=>{
+    html+=`<div class="zrow ${i===hlIdx?'hl':''}">
+      <div><div class="zname">${r[0]} &nbsp;<span class="he">${r[1]}</span></div>
+      <div class="zsub">${r[3]}</div></div>
+      <div class="ztime">${fmtTime(r[2])}</div></div>`;
+  });
+  document.getElementById('zmount').innerHTML=html;
+
+  // Shabbat card — show upcoming Friday candle lighting
+  const d=new Date();const wd=d.getDay();
+  const daysToFri=(5-wd+7)%7;
+  const fri=new Date(d);fri.setDate(d.getDate()+daysToFri);
+  const friZ=computeZmanim(fri);
+  const sat=new Date(fri);sat.setDate(fri.getDate()+1);
+  const satZ=computeZmanim(sat);
+  const friLabel=daysToFri===0?'Today':`${DOWE[5]} ${fri.getMonth()+1}/${fri.getDate()}`;
+  document.getElementById('shabbatMount').innerHTML=
+    `<div class="sec-h">Shabbat</div>
+     <div class="ztable">
+       <div class="zrow"><div><div class="zname">Candle Lighting</div><div class="zsub">${friLabel} · 18 min before sunset</div></div><div class="ztime">${fmtTime(friZ.candle)}</div></div>
+       <div class="zrow"><div><div class="zname">Havdalah</div><div class="zsub">Motzaei Shabbat · nightfall</div></div><div class="ztime">${fmtTime(satZ.tzeit)}</div></div>
+     </div>`;
+}
+
+function renderBlessings(){
+  let html='';
+  BLESSINGS.forEach((b,i)=>{
+    const url=b.ref?('https://www.sefaria.org/'+b.ref):('https://www.sefaria.org/search?q='+encodeURIComponent(b.name+' Sephardic'));
+    html+=`<div class="bcard" data-b="${i}">
+      <div class="bhead"><div><h4>${b.name}</h4><div class="when">${b.when}</div></div><div class="arr">›</div></div>
+      <div class="bbody"><div class="bbody-in">
+        <div class="bhe">${b.he}</div>
+        <div class="btr">${b.tr}</div>
+        <div class="ben">${b.en}</div>
+        <div class="linkrow"><a class="readlink" href="${url}" target="_blank" rel="noopener">Find on Sefaria ›</a></div>
+      </div></div></div>`;
+  });
+  document.getElementById('blessMount').innerHTML=html;
+  document.querySelectorAll('[data-b]').forEach(c=>{
+    c.querySelector('.bhead').onclick=()=>c.classList.toggle('open');
+  });
+}
+
+function renderUpcoming(){
+  const pool=[...holidaysForYear(absoluteToHebrew(todayAbs).year),
+              ...holidaysForYear(absoluteToHebrew(todayAbs).year+1)]
+              .filter(h=>h.abs>=todayAbs).sort((a,b)=>a.abs-b.abs).slice(0,8);
+  let html='';
+  for(const h of pool){
+    const diff=h.abs-todayAbs;
+    const g=absoluteToGregorian(h.abs);
+    const lab=diff===0?'today':diff===1?'tomorrow':`${diff} days`;
+    html+=`<div class="ucard ${diff<=7?'soon':''}">
+      <div class="udays"><b>${diff}</b><span>${diff===1?'day':'days'}</span></div>
+      <div class="uinfo">
+        <h4>${h.name} <span class="he" style="font-family:var(--display);color:var(--twilight)">${h.he}</span>
+          <span class="tag ${h.type}">${h.type}</span></h4>
+        <div class="ud">${DOWE[dow(h.abs)]}, ${g.month}/${g.day}/${g.year} · in ${lab}</div>
+        ${h.flag?`<div class="uflag">⟳ ${h.flag}</div>`:''}
+        <div class="up">${h.prep}</div>
+      </div></div>`;
+  }
+  document.getElementById('upMount').innerHTML=html;
+}
+
+function renderTehillim(){
+  const heb=absoluteToHebrew(todayAbs);
+  const monthLen=hebrewDaysInMonth(heb.month,heb.year);
+  let psalms, label;
+  if(heb.day===29 && monthLen===29){ psalms='140–150'; label='Day 29 (with Day 30)'; }
+  else { psalms=TEHILLIM[heb.day]||'—'; label='Day '+heb.day; }
+  document.getElementById('tehillimMount').innerHTML=
+    `<div class="ztable">
+       <div class="zrow hl"><div><div class="zname">Today · ${label}</div>
+         <div class="zsub">${HMON[heb.month]} ${heb.year} · monthly cycle</div></div>
+         <div class="ztime" style="font-size:15px">Psalms ${psalms}</div></div>
+     </div>`;
+}
+
+async function renderParsha(){
+  const mount=document.getElementById('parshaMount');
+  const d=new Date();const wd=d.getDay();
+  const daysToSat=(6-wd+7)%7;
+  const sat=new Date(d);sat.setDate(d.getDate()+daysToSat);
+  const aliyahToday=ALIYAH[wd];
+  const satKey=`${sat.getFullYear()}-${sat.getMonth()+1}-${sat.getDate()}`;
+  // Chabad's weekly page auto-redirects to the CURRENT week's parsha (specific, not a generic index)
+  const chabadCur='https://www.chabad.org/parshah/default_cdo/jewish/parshah.htm';
+  const sefariaCur='https://www.sefaria.org/texts/Tanakh/Torah';
+
+  const paint=(name,heName,ref,sefRef)=>{
+    const links=
+      (sefRef?`<a class="readlink" href="${sefRef}" target="_blank" rel="noopener">Read on Sefaria ›</a>`:
+              `<a class="readlink" href="${chabadCur}" target="_blank" rel="noopener">This week on Chabad.org ›</a>`)+
+      `<a class="readlink alt" href="${chabadCur}" target="_blank" rel="noopener">Chabad.org ›</a>`;
+    mount.innerHTML=
+      `<div class="ztable">
+         <div class="zrow hl"><div><div class="zname">${name||"This week's portion"}${heName?' &nbsp;<span class="he">'+heName+'</span>':''}</div>
+           <div class="zsub">Shabbat ${sat.toLocaleDateString('en-US',{month:'short',day:'numeric'})}${ref?' · '+ref:''}</div></div></div>
+         <div class="zrow"><div><div class="zname">Today's portion</div>
+           <div class="zsub">Chitas · read the ${aliyahToday.toLowerCase()} aliyah</div></div>
+           <div class="ztime" style="font-size:15px">${aliyahToday}</div></div>
+       </div>
+       <div class="linkrow">${links}</div>`;
+  };
+
+  // 1) Paint from cache immediately if we have this week's portion stored (survives offline).
+  let hadCache=false;
+  try{
+    const c=await store.get('parsha:'+satKey);
+    if(c){const o=JSON.parse(c);hadCache=true;paint(o.name,o.heName,o.ref,o.sefRef);}
+  }catch(e){}
+  if(!hadCache){
+    mount.innerHTML=
+      `<div class="ztable"><div class="zrow"><div><div class="zname">Loading this week's parsha…</div>
+         <div class="zsub">today is the ${aliyahToday.toLowerCase()} aliyah</div></div></div></div>`;
+  }
+
+  // 2) Refresh from the live API and cache it. The parsha's own url (e.g. Numbers.13.1-15.41)
+  //    links straight to the exact reading.
+  try{
+    const y=d.getFullYear(),mo=d.getMonth()+1,da=d.getDate();
+    const r=await fetch(`https://www.sefaria.org/api/calendars?year=${y}&month=${mo}&day=${da}&diaspora=1`);
+    const j=await r.json();
+    const item=(j.calendar_items||[]).find(x=>x.title&&x.title.en==='Parashat Hashavua');
+    if(!item)throw new Error('no parsha');
+    const name=(item.displayValue&&item.displayValue.en)||'';
+    const heName=(item.displayValue&&item.displayValue.he)||'';
+    const ref=item.ref||'';
+    let sefRef=item.url?('https://www.sefaria.org/'+item.url):'';
+    if(!sefRef){const s=PARSHA_START[normParsha(name)];if(s)sefRef='https://www.sefaria.org/'+s;}
+    store.set('parsha:'+satKey,JSON.stringify({name,heName,ref,sefRef}));
+    paint(name,heName,ref,sefRef);
+  }catch(e){
+    // Offline or blocked (e.g. an in-app preview sandbox) and nothing cached:
+    // fall back to a link that still opens the ACTUAL current parsha, not a generic index.
+    if(!hadCache){
+      mount.innerHTML=
+        `<div class="ztable"><div class="zrow"><div>
+           <div class="zname">This week's reading</div>
+           <div class="zsub">Couldn't reach Sefaria from here — the button opens the actual current parsha. Today is the ${aliyahToday.toLowerCase()} aliyah.</div>
+         </div></div></div>
+         <div class="linkrow">
+           <a class="readlink" href="${chabadCur}" target="_blank" rel="noopener">Open this week's parsha ›</a>
+           <a class="readlink alt" href="${sefariaCur}" target="_blank" rel="noopener">Sefaria ›</a>
+         </div>`;
+    }
+  }
+}
+
+function renderPractice(){
+  let html='';
+  practice.forEach((p,i)=>{
+    html+=`<div class="pitem ${p.done?'done':''}">
+      <button class="chk ${p.done?'on':''}" data-p="${i}"><svg viewBox="0 0 24 24"><path d="M4 12l5 5L20 6"/></svg></button>
+      <span>${p.text}</span>
+      <button class="del" data-del="${i}">×</button></div>`;
+  });
+  if(!practice.length)html='<div style="color:var(--muted);font-size:14px;padding:4px 2px">Add Tehillim, daily Torah study, tzedakah — whatever you want to keep before you each day.</div>';
+  document.getElementById('practiceMount').innerHTML=html;
+  document.querySelectorAll('[data-p]').forEach(b=>b.onclick=()=>{
+    practice[b.dataset.p].done=!practice[b.dataset.p].done;savePractice();renderPractice();});
+  document.querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>{
+    practice.splice(b.dataset.del,1);savePractice();renderPractice();});
+}
+function savePractice(){store.set('practice:'+dayKey,JSON.stringify(practice));}
+
+function renderNow(){
+  const items=flowItems();
+  const now=new Date();const localMin=now.getHours()*60+now.getMinutes();
+  setSky(localMin);
+  // find current zman window label + next zman countdown
+  const seq=[['Alot',Z.alot],['Sunrise',Z.netz],['Sof Shema',Z.shemaGRA],['Midday',Z.chatzot],
+             ['Mincha Gedola',Z.minchaG],['Plag',Z.plag],['Sunset',Z.shkia],['Nightfall',Z.tzeit]];
+  let nextName=null,nextMin=null;
+  for(const [nm,t] of seq){const lm=toLocalMin(t);if(lm>localMin){nextName=nm;nextMin=lm;break;}}
+  const curId=currentFlowId(items,localMin);
+  const cur=items.find(i=>i.id===curId);
+  document.getElementById('nowName').textContent=cur?`${cur.title}`:'Day complete — rest well';
+  if(nextName){
+    let mins=Math.max(0,Math.round(nextMin-localMin));const h=Math.floor(mins/60),m=mins%60;
+    document.getElementById('nowCount').textContent=`${nextName} in ${h?h+'h ':''}${m}m`;
+  }else document.getElementById('nowCount').textContent='';
+}
+
+async function init(){
+  const now=new Date();
+  todayAbs=gregorianToAbsolute(now.getFullYear(),now.getMonth()+1,now.getDate());
+  dayKey=`${now.getFullYear()}-${now.getMonth()+1}-${now.getDate()}`;
+  Z=computeZmanim(now);
+
+  // header dates
+  const heb=absoluteToHebrew(todayAbs);
+  document.getElementById('hdate').textContent=`${HEB_NUM[heb.day]} ${HMON_HE[heb.month]} ${hebYear(heb.year)}`;
+  document.getElementById('hdateEn').textContent=`${heb.day} ${HMON[heb.month]} ${heb.year}`;
+  document.getElementById('gdate').textContent=now.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
+
+  // load persisted state
+  try{const f=await store.get('flow:'+dayKey);flowState=f?JSON.parse(f):{};}catch(e){flowState={};}
+  try{const p=await store.get('practice:'+dayKey);practice=p?JSON.parse(p):[];}catch(e){practice=[];}
+
+  renderFlow();renderZmanim();renderTehillim();renderParsha();renderBlessings();renderUpcoming();renderPractice();renderNow();
+  setInterval(renderNow,60000);
+}
+
+// nav
+document.querySelectorAll('#nav button').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('#nav button').forEach(x=>x.classList.remove('on'));
+  b.classList.add('on');
+  document.querySelectorAll('.tabpane').forEach(p=>p.classList.remove('on'));
+  document.getElementById('pane-'+b.dataset.tab).classList.add('on');
+  window.scrollTo({top:0,behavior:'smooth'});
+});
+// add practice
+document.getElementById('addBtn').onclick=()=>{
+  const v=document.getElementById('addInput').value.trim();if(!v)return;
+  practice.push({text:v,done:false});document.getElementById('addInput').value='';
+  savePractice();renderPractice();
+};
+document.getElementById('addInput').addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('addBtn').click();});
+
+init();
+</script>
+</body>
+</html>
